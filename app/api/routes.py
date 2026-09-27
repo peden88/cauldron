@@ -3,7 +3,7 @@ Standalone REST API: search across scrapers, check debrid cache status,
 resolve a magnet to a playable link, and manage ranking preferences.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 from app.cache.store import cache_get, cache_set, get_cache_stats
 from app.config import get_settings
@@ -11,6 +11,7 @@ from app.debrid.factory import get_debrid_client
 
 from app.models import (
     CacheStatus,
+    AvailabilityRequest,
     DebridProvider,
     ResolveRequest,
     ResolveResponse,
@@ -25,6 +26,7 @@ from app.ranking.store import (
     load_preferences,
     save_preferences,
 )
+from app.security import require_admin_api_key
 
 
 router = APIRouter(
@@ -112,7 +114,9 @@ async def get_ranking_settings():
 )
 async def update_ranking_settings(
     preferences: RankingPreferences,
+    x_admin_api_key: str | None = Header(default=None),
 ):
+    require_admin_api_key(x_admin_api_key)
 
     save_preferences(
         preferences
@@ -122,9 +126,83 @@ async def update_ranking_settings(
 
 
 
+async def _availability(
+    q: str,
+    provider: DebridProvider,
+    api_key: str,
+    imdb_id: str | None = None,
+    season: str | None = None,
+    episode: str | None = None,
+    media_type: str | None = None,
+):
+
+    torrents = await search_all(
+        q,
+        imdb_id=imdb_id,
+        season=season,
+        episode=episode,
+        media_type=media_type,
+        preferences=load_preferences(),
+    )
+
+    if not torrents:
+        return []
+
+    client = get_debrid_client(
+        provider,
+        api_key,
+    )
+
+    cache_key = (
+        f"avail:{provider}:{q}:{season or ''}:{episode or ''}:{media_type or ''}:"
+        f"{','.join(t.info_hash for t in torrents)}"
+    )
+
+    cached_map = await cache_get(cache_key)
+
+    if cached_map is None:
+        status_map = await client.check_cache(
+            [torrent.info_hash for torrent in torrents]
+        )
+
+        cached_map = {
+            key: value.value
+            for key, value in status_map.items()
+        }
+
+        await cache_set(
+            cache_key,
+            cached_map,
+            settings.cache_ttl_availability,
+        )
+
+    return [
+        StreamCandidate(
+            torrent=torrent,
+            provider=provider,
+            cache_status=CacheStatus(
+                cached_map.get(
+                    torrent.info_hash,
+                    CacheStatus.UNKNOWN.value,
+                )
+            ),
+        )
+        for torrent in torrents
+    ]
+
+
+@router.post(
+    "/availability",
+    response_model=list[StreamCandidate],
+)
+async def availability_post(request: AvailabilityRequest):
+    return await _availability(**request.model_dump())
+
+
 @router.get(
     "/availability",
     response_model=list[StreamCandidate],
+    deprecated=True,
 )
 async def availability(
     q: str = Query(...),
@@ -146,79 +224,15 @@ async def availability(
         default=None,
     ),
 ):
-
-    torrents = await search_all(
+    return await _availability(
         q,
+        provider,
+        api_key,
         imdb_id=imdb_id,
         season=season,
         episode=episode,
         media_type=media_type,
-        preferences=load_preferences(),
     )
-
-    if not torrents:
-        return []
-
-    print(f"Cache check for {len(torrents)} torrents", flush=True)
-
-
-    if not torrents:
-        return []
-
-
-    client = get_debrid_client(
-        provider,
-        api_key,
-    )
-
-
-    cache_key = (
-        f"avail:{provider}:{q}:{season or ''}:{episode or ''}:{media_type or ''}:"
-        f"{','.join(t.info_hash for t in torrents)}"
-    )
-
-
-    cached_map = await cache_get(
-        cache_key
-    )
-
-
-    if cached_map is None:
-
-        status_map = await client.check_cache(
-            [
-                t.info_hash
-                for t in torrents
-            ]
-        )
-
-
-        cached_map = {
-            k: v.value
-            for k, v in status_map.items()
-        }
-
-
-        await cache_set(
-            cache_key,
-            cached_map,
-            settings.cache_ttl_availability,
-        )
-
-
-    return [
-        StreamCandidate(
-            torrent=t,
-            provider=provider,
-            cache_status=CacheStatus(
-                cached_map.get(
-                    t.info_hash,
-                    CacheStatus.UNKNOWN.value,
-                )
-            ),
-        )
-        for t in torrents
-    ]
 
 
 

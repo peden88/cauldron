@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     addon_name: str = "Cauldron"
     addon_version: str = "0.3.0"
     addon_url: str = "http://localhost:8000"
+    admin_api_key: Optional[str] = Field(
+        default=None,
+        description="Required to change shared ranking preferences",
+    )
 
     # --- Debrid provider API bases (rarely need changing) ---
     realdebrid_api_base: str = "https://api.real-debrid.com/rest/1.0"

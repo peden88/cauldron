@@ -8,7 +8,7 @@ Cauldron now supports multiple deployment profiles to streamline the container s
 **Best for:** Basic functionality, resource-constrained environments, testing
 
 ```bash
-docker-compose --profile core up -d
+docker-compose up -d
 ```
 
 **Containers:**
@@ -45,7 +45,8 @@ docker-compose --profile full up -d
 docker-compose up -d
 ```
 
-This runs the full setup (equivalent to `--profile full`) for backward compatibility.
+This starts the core app and Redis services. Add `--profile full` to include
+Zilean and PostgreSQL.
 
 ## Environment Variables
 
@@ -53,6 +54,7 @@ This runs the full setup (equivalent to `--profile full`) for backward compatibi
 ```bash
 ADDON_URL=https://your-domain.com
 TORRIN_API_KEY=your_torrin_key  # Optional
+ADMIN_API_KEY=choose_a_long_random_value  # Enables shared ranking settings writes
 ```
 
 ### Full Setup Additional Variables

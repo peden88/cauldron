@@ -48,6 +48,16 @@ class StreamCandidate(BaseModel):
     file_name: Optional[str] = None
 
 
+class AvailabilityRequest(BaseModel):
+    q: str
+    provider: DebridProvider
+    api_key: str
+    imdb_id: Optional[str] = None
+    season: Optional[str] = None
+    episode: Optional[str] = None
+    media_type: Optional[str] = None
+
+
 class ResolveRequest(BaseModel):
     provider: DebridProvider
     api_key: str
