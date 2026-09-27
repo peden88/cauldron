@@ -1,3 +1,15 @@
+# Cauldron v0.3.2
+
+## 🔒 Security and Reliability
+
+- Encrypted generated addon configurations at rest and strengthened configuration IDs.
+- Protected shared ranking settings with an admin API key.
+- Added a POST availability endpoint to keep provider keys out of request URLs.
+- Failed Stremio requests explicitly when configured filtering cannot be applied.
+- Added Redis readiness reporting and a Docker healthcheck.
+
+---
+
 # Cauldron v0.3.0
 
 ## 🔧 Improvements
