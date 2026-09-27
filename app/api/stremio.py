@@ -18,6 +18,19 @@ router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
+def _apply_configured_filters(results, cfg):
+    from app.filtering.pipeline import FilterPipeline
+
+    try:
+        return FilterPipeline(cfg).apply(results)
+    except Exception as exc:
+        logger.exception("Filtering pipeline failed")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to apply configured filters",
+        ) from exc
+
+
 CINEMETA_URL = (
     "https://v3-cinemeta.strem.io/meta/{type}/{id}.json"
 )
@@ -205,20 +218,12 @@ def _decode_config(config: str):
     cfg = load_config(config)
 
     if cfg is None:
-        logger.error(
-            "Configuration not found: %s",
-            config,
-        )
+        logger.error("Configuration not found")
 
         raise HTTPException(
             status_code=404,
-            detail=f"Configuration not found: {config}",
+            detail="Configuration not found",
         )
-
-    logger.info(
-        "Loaded config %s",
-        config,
-    )
 
     logger.info(
         "Config provider: %s",
@@ -413,10 +418,6 @@ async def stream(
     logger.info(
         "ID: %s",
         id,
-    )
-    logger.info(
-        "CONFIG: %s",
-        config,
     )
     logger.info(
         "========================================"
@@ -718,41 +719,15 @@ async def stream(
     # FILTERING
     # -----------------------------------------------------
 
-    try:
-        from app.filtering.pipeline import (
-            FilterPipeline
-        )
+    results = _apply_configured_filters(
+        results,
+        cfg,
+    )
 
-        logger.info(
-            "FILTER CONFIG - required_languages: %s",
-            cfg.get("required_languages", [])
-        )
-        logger.info(
-            "FILTER CONFIG - excluded_languages: %s",
-            cfg.get("excluded_languages", [])
-        )
-        logger.info(
-            "FILTER CONFIG - language: %s",
-            cfg.get("language", [])
-        )
-
-        pipeline = FilterPipeline(
-            cfg
-        )
-
-        results = pipeline.apply(
-            results
-        )
-
-        logger.info(
-            "AFTER FILTER PIPELINE: %d",
-            len(results),
-        )
-
-    except Exception:
-        logger.exception(
-            "Filtering pipeline failed"
-        )
+    logger.info(
+        "AFTER FILTER PIPELINE: %d",
+        len(results),
+    )
 
     # -----------------------------------------------------
     # SORTING

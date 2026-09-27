@@ -381,11 +381,20 @@ curl "http://localhost:8000/api/search?q=your+query"
 
 ## Availability
 
-Check availability through a supported provider:
+Check availability through a supported provider. Send the API key in the request
+body so it is not included in URL logs or browser history:
 
 ```bash
-curl "http://localhost:8000/api/availability?q=your+query&provider=alldebrid&api_key=YOUR_KEY"
+curl -X POST http://localhost:8000/api/availability \
+  -H "Content-Type: application/json" \
+  -d '{
+    "q": "your query",
+    "provider": "alldebrid",
+    "api_key": "YOUR_KEY"
+  }'
 ```
+
+The legacy GET endpoint remains available for compatibility, but is deprecated.
 
 ---
 
@@ -655,8 +664,15 @@ ZILEAN_ENABLED
 ZILEAN_URL
 TORRIN_API_KEY
 TORRIN_API_BASE
+ADMIN_API_KEY
 ```
 
+Set `ADMIN_API_KEY` to enable writes to shared ranking settings. Those writes
+return `503` when it is not set. Send it as the `X-Admin-API-Key` header to
+`POST /api/settings/ranking`; form clients can provide it as `admin_api_key`.
+Generated addon configuration payloads are encrypted in SQLite. Keep the
+`/data/cauldron.key` file backed up alongside `/data/cauldron.db`; existing
+plaintext configurations remain readable and are encrypted when newly saved.
 Refer to `.env.example` for the complete current configuration.
 
 ---

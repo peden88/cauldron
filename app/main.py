@@ -2,7 +2,7 @@ import logging
 import socket
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -10,7 +10,7 @@ from fastapi.responses import FileResponse
 from app.api.routes import router as api_router
 from app.api.stremio import router as stremio_router
 from app.web.routes import router as web_router
-from app.cache.store import get_cache_stats
+from app.cache.store import get_cache_backend_status, get_cache_stats
 
 from app.config import get_settings
 
@@ -120,17 +120,37 @@ async def health():
     }
 
 
+@app.get("/ready")
+async def ready():
+    cache_backend = await get_cache_backend_status()
+
+    if cache_backend == "unavailable":
+        raise HTTPException(
+            status_code=503,
+            detail="Configured Redis cache is unavailable",
+        )
+
+    return {
+        "status": "ready",
+        "version": settings.addon_version,
+        "cache_backend": cache_backend,
+    }
+
+
 # ==================================================
 # STATUS
 # ==================================================
 @app.get("/api/status")
 async def status():
+    cache_backend = await get_cache_backend_status()
 
     services = {
 
         "api": "online",
 
-        "redis": "online" if settings.redis_url else "offline",
+        "redis": "online" if cache_backend == "redis" else "offline",
+
+        "cache_backend": cache_backend,
 
         "debrid": "ready"
 

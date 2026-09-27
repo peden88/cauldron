@@ -27,6 +27,22 @@ def _get_redis():
     return _redis_client
 
 
+async def get_cache_backend_status() -> str:
+    if settings.disable_cache:
+        return "disabled"
+
+    redis_client = _get_redis()
+    if redis_client is None:
+        return "memory"
+
+    try:
+        await redis_client.ping()
+    except Exception:
+        return "unavailable"
+
+    return "redis"
+
+
 async def cache_get(key: str) -> Optional[Any]:
     if settings.disable_cache:
         return None

@@ -10,6 +10,7 @@ from app.ranking.preferences import RankingPreferences
 
 from app.config import get_settings
 from app.config_store import save_config
+from app.security import require_admin_api_key
 
 
 router = APIRouter(tags=["web"])
@@ -155,8 +156,11 @@ async def home(request: Request):
 
 @router.post("/settings")
 async def update_settings(request: Request):
-
     form = await request.form()
+    require_admin_api_key(
+        request.headers.get("x-admin-api-key")
+        or form.get("admin_api_key")
+    )
 
     sort_criteria = _get_sort_criteria(
         form
