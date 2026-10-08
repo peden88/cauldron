@@ -568,6 +568,22 @@ def _title_matches_series(
     return True
 
 
+def _title_matches_anime(requested_title: str, result_title: str) -> bool:
+    """Anime releases can start with a fansub group and contain punctuation.
+
+    Require the full requested title as consecutive tokens; never match
+    substrings of words (e.g. Monster against Monsters).
+    """
+    def tokens(value: str) -> list[str]:
+        return re.findall(r"[^\\W_]+", value.casefold(), flags=re.UNICODE)
+
+    wanted = tokens(requested_title)
+    found = tokens(result_title)
+    if not wanted or len(found) < len(wanted):
+        return False
+    return any(found[i:i + len(wanted)] == wanted for i in range(len(found) - len(wanted) + 1))
+
+
 # ---------------------------------------------------------
 # RESULT FILTERING
 # ---------------------------------------------------------
@@ -617,10 +633,7 @@ def _result_matches_request(
     # -----------------------------------------------------
 
     if media_type in ("series", "anime"):
-        if not _title_matches_series(
-            query,
-            result_title,
-        ):
+        if not (_title_matches_anime(query, result_title) if media_type == "anime" else _title_matches_series(query, result_title)):
             logger.debug(
                 "TITLE FILTER REJECT [series]: %r -> %r",
                 query,
@@ -784,6 +797,7 @@ async def search_all(
     # -----------------------------------------------------
 
     filtered_results: list[TorrentResult] = []
+    rejected_examples: list[str] = []
 
     for scraper_results in results_per_scraper:
         for result in scraper_results:
@@ -795,6 +809,11 @@ async def search_all(
                 episode,
             ) for title in search_titles):
                 filtered_results.append(result)
+            elif media_type == "anime" and len(rejected_examples) < 5:
+                rejected_examples.append(str(getattr(result, "title", ""))[:180])
+
+    if media_type == "anime":
+        logger.info("ANIME FILTER sample rejected releases: %r", rejected_examples)
 
     logger.info(
         "TITLE FILTER: %d -> %d results",
