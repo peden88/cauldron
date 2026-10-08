@@ -1,4 +1,8 @@
-"""Conservative anime episode matching, including absolute episode releases."""
+"""Anime release episode validation.
+
+Only accept an explicitly marked episode number; never infer an episode
+from resolution, year, release version, or a bare number in a title.
+"""
 import re
 
 
@@ -17,14 +21,13 @@ def anime_episode_matches(title: str, season: int | str | None, episode: int | s
             s = int(season)
         except (TypeError, ValueError):
             return False
-        if re.search(rf"(?<![a-z0-9])s0*{s}e0*{target}(?!\d)|(?<!\d){s}x0*{target}(?!\d)", value):
+        if re.search(rf"(?<![a-z0-9])s0*{s}e0*{target}(?![0-9])|(?<![0-9]){s}x0*{target}(?![0-9])", value):
             return True
-    # Do not confuse 1080p, 2026, or release-group version numbers with episodes.
+    # Anime releases often use '[Group] Title - 12 [1080p]'.
     for pattern in (
-        r"(?:^|[\s._\\-])(?:ep(?:isode)?[\s._\\-]*)0*(\d{1,4})(?!\d)",
-        r"(?:[\s._\\-]+-+[\s._\\-]*)0*(\d{1,4})(?!\d)",
+        r"(?:^|[^a-z0-9])(?:ep(?:isode)?[ ._-]*)0*([0-9]{1,4})(?![0-9])",
+        r"[ ._-]+-[ ._-]*0*([0-9]{1,4})(?![0-9])",
     ):
-        for match in re.finditer(pattern, value):
-            if int(match.group(1)) == target:
-                return True
+        if any(int(m.group(1)) == target for m in re.finditer(pattern, value)):
+            return True
     return False
