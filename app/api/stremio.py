@@ -565,6 +565,8 @@ async def stream(
             media_type=media["type"],
             aliases=media.get("aliases") if media["type"] == "anime" else None,
             anilist_id=media.get("anilist_id"),
+            mapped_season=media.get("mapped_season"),
+            mapped_episode=media.get("mapped_episode"),
             account_provider=provider_str,
             account_api_key=api_key,
         )
