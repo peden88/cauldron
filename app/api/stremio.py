@@ -123,7 +123,7 @@ async def resolve_media(type_: str, id_: str):
     season = None
     episode = None
 
-    if type_ == "series" and ":" in id_:
+    if type_ in ("series", "anime") and ":" in id_:
         parts = id_.split(":")
 
         imdb_id = parts[0]
@@ -139,6 +139,26 @@ async def resolve_media(type_: str, id_: str):
                 episode = int(parts[2])
             except ValueError:
                 episode = None
+
+    if type_ == "anime" and imdb_id.startswith("kitsu:"):
+        kitsu_id = imdb_id.split(":", 1)[1]
+        if not kitsu_id.isdigit():
+            raise HTTPException(status_code=400, detail="Invalid Kitsu anime ID")
+        try:
+            async with httpx.AsyncClient(timeout=15) as client:
+                response = await client.get(f"https://kitsu.io/api/edge/anime/{kitsu_id}")
+                response.raise_for_status()
+                attributes = response.json()["data"]["attributes"]
+        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+            raise HTTPException(status_code=502, detail="Unable to resolve Kitsu anime metadata") from exc
+        titles = attributes.get("titles") or {}
+        title = attributes.get("canonicalTitle") or titles.get("en") or titles.get("en_jp")
+        if not title:
+            raise HTTPException(status_code=404, detail="Anime title not found")
+        date = attributes.get("startDate") or ""
+        year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else None
+        aliases = list(dict.fromkeys(v for v in [*titles.values(), *(attributes.get("abbreviatedTitles") or [])] if isinstance(v, str) and v != title))
+        return {"type": "anime", "imdb_id": None, "title": title, "year": year, "aliases": aliases, "season": season, "episode": episode}
 
     url = CINEMETA_URL.format(
         type="movie" if type_ == "movie" else "series",
@@ -430,6 +450,7 @@ async def stream(
     if type not in (
         "movie",
         "series",
+        "anime",
     ):
         raise HTTPException(
             status_code=400,
@@ -506,7 +527,7 @@ async def stream(
             imdb_id=media["imdb_id"],
             season=media["season"],
             episode=media["episode"],
-            media_type=media["type"],
+            media_type="series" if media["type"] == "anime" else media["type"],
             account_provider=provider_str,
             account_api_key=api_key,
         )
