@@ -7,6 +7,7 @@ from app.scrapers.base import Scraper
 from app.scrapers.public_scraper import PublicScraper
 from app.scrapers.comet import CometScraper
 from app.scrapers.mediafusion import MediaFusionScraper
+from app.scrapers.animetosho import AnimeToshoScraper
 from app.debrid.torrin import TorrinClient
 
 from app.ranking.preferences import RankingPreferences
@@ -20,6 +21,7 @@ _SCRAPERS: list[Scraper] = [
     PublicScraper(),
     CometScraper(),
     MediaFusionScraper(),
+    AnimeToshoScraper(),
 ]
 
 
