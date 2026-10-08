@@ -59,3 +59,29 @@ def titles_for(entry: dict) -> list[str]:
         if isinstance(value, list):
             values.extend(v for v in value if isinstance(v, str) and v.strip())
     return list(dict.fromkeys(values))
+
+
+_KITSU_EPISODES_URL = "https://raw.githubusercontent.com/TheBeastLT/stremio-kitsu-anime/master/static/data/imdb_mapping.json"
+_episode_index = {}
+_episode_attempt = 0.0
+_episode_lock = asyncio.Lock()
+
+
+async def kitsu_episode_mapping(kitsu_id: str) -> dict:
+    """Return Comet-compatible Kitsu-to-IMDb season and episode offsets."""
+    global _episode_index, _episode_attempt
+    if time.monotonic() - _episode_attempt > 86400:
+        async with _episode_lock:
+            if time.monotonic() - _episode_attempt > 86400:
+                _episode_attempt = time.monotonic()
+                try:
+                    async with httpx.AsyncClient(timeout=35) as client:
+                        response = await client.get(_KITSU_EPISODES_URL)
+                        response.raise_for_status()
+                        rows = response.json()
+                    if not isinstance(rows, list):
+                        raise ValueError("Invalid Kitsu episode mapping")
+                    _episode_index = {str(v["kitsu_id"]): v for v in rows if isinstance(v, dict) and v.get("kitsu_id") is not None}
+                except (httpx.HTTPError, ValueError, TypeError) as exc:
+                    log.warning("Kitsu episode mapping unavailable: %s", exc)
+    return _episode_index.get(str(kitsu_id), {})
