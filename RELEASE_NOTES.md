@@ -1,3 +1,11 @@
+# Cauldron v0.3.4
+
+## Improved
+
+- Refined sorting controls and applied purple accents throughout the web UI.
+
+---
+
 # Cauldron v0.3.3
 
 ## Fixed
