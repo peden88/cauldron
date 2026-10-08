@@ -178,7 +178,7 @@ async def resolve_media(type_: str, id_: str):
             "type": anime_kind, "imdb_id": mapped_imdb if isinstance(mapped_imdb, str) and mapped_imdb.startswith("tt") else None,
             "anilist_id": mapping.get("anilist_id"),
             "title": title, "year": year,
-            "aliases": list(dict.fromkeys(v for v in aliases if v and v != title))[:12],
+            "aliases": list(dict.fromkeys(v for v in aliases if v and v != title))[:4],
             "season": season, "episode": episode,
         }
 
@@ -226,7 +226,7 @@ async def resolve_media(type_: str, id_: str):
     if type_ in ("series", "anime") and imdb_id and imdb_id.startswith("tt"):
         anime_mapping = await lookup("imdb", imdb_id)
         if anime_mapping:
-            aliases = list(dict.fromkeys([*aliases, *titles_for(anime_mapping)]))[:12]
+            aliases = list(dict.fromkeys([*aliases, *titles_for(anime_mapping)]))[:4]
             type_ = "anime"
 
     logger.info("=== RESOLVED MEDIA ===")
