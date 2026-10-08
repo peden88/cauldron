@@ -2,6 +2,12 @@
   box-sizing: border-box;
 }
 
+:root {
+  --accent: #a78bfa;
+  --accent-strong: #8b5cf6;
+  --accent-rgb: 167, 139, 250;
+}
+
 body {
   background: #0d0d12;
   color: #eee;
@@ -27,7 +33,7 @@ body {
 
 h1 {
   text-align: center;
-  color: #ffd700;
+  color: var(--accent);
   margin-bottom: 6px;
 }
 
@@ -42,7 +48,7 @@ h1 {
   padding: 18px;
   border-radius: 16px;
   margin-bottom: 16px;
-  border: 1px solid rgba(255, 215, 0, 0.05);
+  border: 1px solid rgba(var(--accent-rgb), 0.08);
 }
 
 .grid {
@@ -128,13 +134,13 @@ h1 {
   width: 18px;
   height: 18px;
   margin: 0 0 0 8px;
-  accent-color: #ffd700;
+  accent-color: var(--accent);
   flex-shrink: 0;
 }
 
 .pill label.selected,
 .pill label:hover {
-  color: #ffd700;
+  color: var(--accent);
 }
 
 input[type="text"],
@@ -158,8 +164,8 @@ button.primary {
   padding: 14px;
   border-radius: 12px;
   border: none;
-  background: #ffd700;
-  color: #111;
+  background: var(--accent-strong);
+  color: #fff;
   font-weight: 700;
   cursor: pointer;
 }
@@ -168,7 +174,7 @@ button.primary {
   background: #0b0b0d;
   padding: 12px;
   border-radius: 10px;
-  color: #ffd700;
+  color: var(--accent);
   word-break: break-all;
 }
 
@@ -198,7 +204,7 @@ button.primary {
   width: 18px;
   height: 18px;
   margin: 0;
-  accent-color: #ffd700;
+  accent-color: var(--accent);
 }
 
 .small {
@@ -252,7 +258,7 @@ label {
 
 .dropdown summary.dropdown-toggle::after {
   content: '▾';
-  color: #ffd700;
+  color: var(--accent);
 }
 
 .dropdown-menu {
@@ -294,21 +300,21 @@ label {
 }
 
 .dropdown-option:hover {
-  background: rgba(255, 215, 0, 0.08);
+  background: rgba(var(--accent-rgb), 0.1);
 }
 
 .dropdown-option input[type="checkbox"] {
-  accent-color: #ffd700;
+  accent-color: var(--accent);
 }
 
-button:not(.dropdown-toggle) {
+button:not(.dropdown-toggle):not(.sort-btn) {
   width: 100%;
   margin-top: 25px;
   padding: 14px;
   border-radius: 20px;
   border: none;
-  background: #ffd700;
-  color: #111;
+  background: var(--accent-strong);
+  color: #fff;
   font-weight: bold;
   cursor: pointer;
 }
@@ -325,61 +331,137 @@ hr {
 }
 
 /* Sortable list styles */
+.sorting-card {
+  --sort-accent: var(--accent);
+  --sort-accent-rgb: var(--accent-rgb);
+}
+
+.sorting-title {
+  color: var(--sort-accent);
+}
+
 .sortable-list {
-  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
 }
 
 .sortable-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  margin-bottom: 8px;
-  transition: all 0.2s ease;
+  gap: 14px;
+  min-height: 62px;
+  padding: 10px 12px;
+  background: #17171d;
+  border: 1px solid #2b2b33;
+  border-radius: 12px;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
 
 .sortable-item:hover {
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 215, 0, 0.2);
+  background: #1d1d25;
+  border-color: rgba(var(--sort-accent-rgb), 0.45);
 }
 
 .sort-controls {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 6px;
+  order: 1;
+  margin-left: auto;
 }
 
 .sort-btn {
-  background: rgba(255, 215, 0, 0.1);
-  border: 1px solid rgba(255, 215, 0, 0.3);
-  color: #ffd700;
-  font-size: 12px;
-  padding: 4px 8px;
-  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  margin: 0;
+  padding: 0;
+  background: rgba(var(--sort-accent-rgb), 0.1);
+  border: 1px solid rgba(var(--sort-accent-rgb), 0.35);
+  color: var(--sort-accent);
+  font-size: 18px;
+  border-radius: 10px;
   cursor: pointer;
   line-height: 1;
-  min-width: 24px;
-  text-align: center;
+  transition: background-color 160ms ease, border-color 160ms ease;
 }
 
-.sort-btn:hover {
-  background: rgba(255, 215, 0, 0.2);
-  border-color: rgba(255, 215, 0, 0.5);
-}
-
-.sort-btn:active {
-  background: rgba(255, 215, 0, 0.3);
+.sort-btn:hover:not(:disabled) {
+  background: rgba(var(--sort-accent-rgb), 0.22);
+  border-color: rgba(var(--sort-accent-rgb), 0.65);
 }
 
 .sort-btn:disabled {
-  opacity: 0.3;
+  opacity: 0.35;
   cursor: not-allowed;
 }
 
-.sortable-item span:last-child {
+.sort-btn:focus-visible {
+  outline: 2px solid var(--sort-accent);
+  outline-offset: 2px;
+}
+
+.sort-rank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  border-radius: 9px;
+  background: rgba(var(--sort-accent-rgb), 0.14);
+  color: var(--sort-accent);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.sort-label {
   color: #eee;
-  font-weight: 500;
+  font-weight: 600;
+}
+
+.sort-help {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.sort-direction {
+  margin-top: 18px;
+}
+
+.sort-direction label {
+  margin-top: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (max-width: 480px) {
+  .sortable-item {
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .sort-controls {
+    gap: 4px;
+  }
+
+  .sort-btn {
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+  }
 }

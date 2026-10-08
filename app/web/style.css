@@ -2,7 +2,7 @@
     --bg:#09090f;
     --card:#151522;
     --card2:#1d1b35;
-    --gold:#facc15;
+    --accent:#a78bfa;
     --purple:#8b5cf6;
     --text:#f8fafc;
     --muted:#94a3b8;
@@ -40,7 +40,7 @@ body {
 
 
 .logo h1 {
-    color:var(--gold);
+    color:var(--accent);
     font-size:42px;
     margin:0;
 }
@@ -74,7 +74,7 @@ body {
 
 
 h2 {
-    color:var(--gold);
+    color:var(--accent);
 }
 
 
@@ -168,11 +168,10 @@ button {
     border-radius:15px;
 
     background:
-
     linear-gradient(
         90deg,
         var(--purple),
-        var(--gold)
+        #a78bfa
     );
 
     font-size:18px;

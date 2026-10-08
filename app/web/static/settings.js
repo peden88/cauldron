@@ -120,6 +120,7 @@ function initSortableList() {
     orderedItems.forEach(item => sortableList.appendChild(item));
   }
 
+  updateSortCriteria();
   updateButtonStates();
 }
 
@@ -140,6 +141,13 @@ function moveItem(button, direction) {
     
     updateSortCriteria();
     updateButtonStates();
+
+    const announcement = document.getElementById('sortAnnouncement');
+    const label = item.querySelector('.sort-label');
+    if (announcement && label) {
+      const newPosition = Array.from(sortableList.querySelectorAll('.sortable-item')).indexOf(item) + 1;
+      announcement.textContent = `${label.textContent.trim()} moved to priority ${newPosition}.`;
+    }
   }
 }
 
@@ -152,9 +160,15 @@ function updateButtonStates() {
   items.forEach((item, index) => {
     const upBtn = item.querySelector('.sort-btn.up');
     const downBtn = item.querySelector('.sort-btn.down');
-    
+    const rank = item.querySelector('.sort-rank');
+    const label = item.querySelector('.sort-label');
+    const name = label ? label.textContent.trim() : item.dataset.value;
+
+    if (rank) rank.textContent = String(index + 1);
     if (upBtn) upBtn.disabled = index === 0;
     if (downBtn) downBtn.disabled = index === items.length - 1;
+    if (upBtn) upBtn.setAttribute('aria-label', `Move ${name} up`);
+    if (downBtn) downBtn.setAttribute('aria-label', `Move ${name} down`);
   });
 }
 
@@ -167,7 +181,6 @@ function updateSortCriteria() {
   const items = sortableList.querySelectorAll('.sortable-item');
   const criteria = Array.from(items).map(item => item.dataset.value);
   sortInput.value = criteria.join(',');
-  console.log('Updated sort criteria:', criteria);
 }
 
 function addLanguageChip(text){
@@ -202,7 +215,7 @@ function showToast(msg, timeout=2500){
   t.className = 'toast';
   t.textContent = msg;
   t.style.background = 'rgba(20,20,20,0.95)';
-  t.style.color = '#ffd700';
+  t.style.color = '#a78bfa';
   t.style.padding = '10px 14px';
   t.style.borderRadius = '8px';
   t.style.marginTop = '8px';
