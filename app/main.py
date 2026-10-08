@@ -45,6 +45,7 @@ async def manifest():
         "types": ["movie", "series", "anime"],
         "catalogs": [],
         "resources": ["stream"],
+        "idPrefixes": ["tt", "kitsu", "k2", "mal", "anilist", "anidb"],
         "background": f"{settings.addon_url}/static/cauldron.png",
         "logo": f"{settings.addon_url}/static/cauldron.png"
     }
