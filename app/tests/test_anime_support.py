@@ -1,6 +1,4 @@
 from app.anime.matching import anime_episode_matches
-from app.scrapers.aggregator import _result_matches_request
-from app.models import TorrentResult
 
 
 def test_absolute_episode_matches():
