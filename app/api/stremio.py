@@ -528,7 +528,8 @@ async def stream(
             imdb_id=media["imdb_id"],
             season=media["season"],
             episode=media["episode"],
-            media_type="series" if media["type"] == "anime" else media["type"],
+            media_type=media["type"],
+            aliases=media.get("aliases") if media["type"] == "anime" else None,
             account_provider=provider_str,
             account_api_key=api_key,
         )
