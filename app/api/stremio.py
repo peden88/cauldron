@@ -496,6 +496,8 @@ async def stream(
     # MEDIA
     # -----------------------------------------------------
 
+    if type == "anime" or id.startswith(("k2:", "kitsu:", "anilist:", "mal:")):
+        logger.warning("ANIME TRACE incoming request type=%s id=%s", type, id)
     media = await resolve_media(
         type,
         id,
