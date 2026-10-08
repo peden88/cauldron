@@ -613,7 +613,7 @@ def _result_matches_request(
     # SERIES
     # -----------------------------------------------------
 
-    if media_type == "series":
+    if media_type in ("series", "anime"):
         if not _title_matches_series(
             query,
             result_title,
@@ -625,11 +625,12 @@ def _result_matches_request(
             )
             return False
 
-        if not _episode_matches(
-            result_title,
-            season,
-            episode,
-        ):
+        if media_type == "anime" and episode is not None:
+            from app.anime.matching import anime_episode_matches
+            episode_valid = anime_episode_matches(result_title, season, episode)
+        else:
+            episode_valid = _episode_matches(result_title, season, episode)
+        if not episode_valid:
             logger.debug(
                 "EPISODE FILTER REJECT: S%sE%s -> %r",
                 season,
@@ -724,6 +725,7 @@ async def search_all(
     preferences: RankingPreferences | None = None,
     account_provider: str | None = None,
     account_api_key: str | None = None,
+    aliases: list[str] | None = None,
 ) -> list[TorrentResult]:
 
     logger.info(
@@ -739,15 +741,17 @@ async def search_all(
     # SEARCH ALL SCRAPERS CONCURRENTLY
     # -----------------------------------------------------
 
+    search_titles = list(dict.fromkeys([query, *(aliases or [])])) if media_type == "anime" else [query]
     tasks = [
         _safe_search(
             scraper,
-            query,
+            title,
             imdb_id,
             season,
             episode,
             media_type,
         )
+        for title in search_titles
         for scraper in _SCRAPERS
     ]
 
@@ -774,13 +778,13 @@ async def search_all(
 
     for scraper_results in results_per_scraper:
         for result in scraper_results:
-            if _result_matches_request(
+            if any(_result_matches_request(
                 result,
-                query,
+                title,
                 media_type,
                 season,
                 episode,
-            ):
+            ) for title in search_titles):
                 filtered_results.append(result)
 
     logger.info(
