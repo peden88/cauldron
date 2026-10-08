@@ -8,6 +8,7 @@ from app.scrapers.public_scraper import PublicScraper
 from app.scrapers.comet import CometScraper
 from app.scrapers.mediafusion import MediaFusionScraper
 from app.scrapers.animetosho import AnimeToshoScraper
+from app.scrapers.seadex import search_seadex
 from app.debrid.torrin import TorrinClient
 
 from app.ranking.preferences import RankingPreferences
@@ -728,6 +729,7 @@ async def search_all(
     account_provider: str | None = None,
     account_api_key: str | None = None,
     aliases: list[str] | None = None,
+    anilist_id: str | int | None = None,
 ) -> list[TorrentResult]:
 
     logger.info(
@@ -756,6 +758,9 @@ async def search_all(
         for title in search_titles
         for scraper in _SCRAPERS
     ]
+
+    if media_type == "anime" and anilist_id:
+        tasks.append(search_seadex(anilist_id))
 
     if account_provider == "torrin" and account_api_key:
         async def search_torrin_account():
