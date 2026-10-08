@@ -26,7 +26,7 @@ def anime_episode_matches(title: str, season: int | str | None, episode: int | s
     # Anime releases often use '[Group] Title - 12 [1080p]'.
     for pattern in (
         r"(?:^|[^a-z0-9])(?:ep(?:isode)?[ ._-]*)0*([0-9]{1,4})(?![0-9])",
-        r"[ ._-]+-[ ._-]*0*([0-9]{1,4})(?![0-9])",
+        r"(?:^|\\s)-\\s*0*([0-9]{1,4})(?![0-9])",
     ):
         if any(int(m.group(1)) == target for m in re.finditer(pattern, value)):
             return True
