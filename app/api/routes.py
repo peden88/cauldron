@@ -4,6 +4,9 @@ resolve a magnet to a playable link, and manage ranking preferences.
 """
 
 from fastapi import APIRouter, Header, HTTPException, Query
+import hashlib
+import json
+
 
 from app.cache.store import cache_get, cache_set, get_cache_stats
 from app.config import get_settings
@@ -37,6 +40,32 @@ router = APIRouter(
 settings = get_settings()
 
 
+def _search_cache_key(
+    q: str,
+    imdb_id: str | None,
+    season: str | None,
+    episode: str | None,
+    media_type: str | None,
+    preferences: RankingPreferences,
+) -> str:
+    ranking_inputs = json.dumps(
+        {
+            "preferred_languages": preferences.preferred_languages,
+            "seeder_weight": preferences.seeder_weight,
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    ranking_fingerprint = hashlib.sha256(
+        ranking_inputs.encode("utf-8")
+    ).hexdigest()
+
+    return (
+        f"search:{q}:{imdb_id or ''}:{season or ''}:{episode or ''}:"
+        f"{media_type or ''}:{ranking_fingerprint}"
+    )
+
+
 @router.get(
     "/search",
     response_model=list[TorrentResult],
@@ -60,7 +89,15 @@ async def search(
     ),
 ):
 
-    cache_key = f"search:{q}:{imdb_id or ''}:{season or ''}:{episode or ''}:{media_type or ''}"
+    preferences = load_preferences()
+    cache_key = _search_cache_key(
+        q,
+        imdb_id,
+        season,
+        episode,
+        media_type,
+        preferences,
+    )
 
     cached = await cache_get(cache_key)
 
@@ -68,7 +105,6 @@ async def search(
         return cached
 
 
-    preferences = load_preferences()
 
 
     results = await search_all(

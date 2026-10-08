@@ -4,9 +4,10 @@ import pytest
 from fastapi import HTTPException
 
 from app import config_store
-from app.api import stremio
+from app.api import routes, stremio
 from app.cache import store
 from app.models import AvailabilityRequest, DebridProvider
+from app.ranking.preferences import RankingPreferences
 from app.security import require_admin_api_key
 
 
@@ -104,3 +105,40 @@ def test_availability_request_keeps_credentials_in_json_payload():
         "episode": None,
         "media_type": None,
     }
+
+
+@pytest.mark.asyncio
+async def test_search_cache_refreshes_when_ranking_preferences_change(monkeypatch):
+    cache = {}
+    cache_keys = []
+    searched_preferences = []
+    current_preferences = [RankingPreferences()]
+
+    async def fake_cache_get(key):
+        cache_keys.append(key)
+        return cache.get(key)
+
+    async def fake_cache_set(key, value, ttl_seconds):
+        cache[key] = value
+
+    async def fake_search_all(query, **kwargs):
+        searched_preferences.append(kwargs["preferences"])
+        return []
+
+    monkeypatch.setattr(routes, "cache_get", fake_cache_get)
+    monkeypatch.setattr(routes, "cache_set", fake_cache_set)
+    monkeypatch.setattr(
+        routes,
+        "load_preferences",
+        lambda: current_preferences[0],
+    )
+    monkeypatch.setattr(routes, "search_all", fake_search_all)
+
+    await routes.search(q="Example")
+    current_preferences[0] = RankingPreferences(seeder_weight=2.0)
+    await routes.search(q="Example")
+    await routes.search(q="Example")
+
+    assert len(searched_preferences) == 2
+    assert cache_keys[0] != cache_keys[1]
+    assert cache_keys[1] == cache_keys[2]

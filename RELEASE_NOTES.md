@@ -1,3 +1,15 @@
+# Cauldron v0.3.3
+
+## Fixed
+
+- Search cache keys now reflect ranking preferences, so preference changes take effect immediately.
+
+## Docker
+
+- Published images use the `latest`, `0.3.3`, and `v0.3.3` tags on GitHub Container Registry.
+
+---
+
 # Cauldron v0.3.2
 
 ## 🔒 Security and Reliability
