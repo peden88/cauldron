@@ -123,7 +123,7 @@ async def resolve_media(type_: str, id_: str):
     season = None
     episode = None
 
-    from app.anime.mapping import lookup, titles_for
+    from app.anime.mapping import lookup, titles_for, kitsu_episode_mapping
 
     provider = None
     provider_id = None
@@ -149,7 +149,8 @@ async def resolve_media(type_: str, id_: str):
             raise HTTPException(status_code=400, detail="Invalid anime identifier")
         mapping = await lookup(provider, provider_id)
         kitsu_id = str(mapping.get("kitsu_id") or (provider_id if provider == "kitsu" else ""))
-        mapped_imdb = mapping.get("imdb_id")
+        episode_map = await kitsu_episode_mapping(kitsu_id) if kitsu_id.isdigit() else {}
+        mapped_imdb = mapping.get("imdb_id") or episode_map.get("imdb_id")
         if isinstance(mapped_imdb, list):
             mapped_imdb = next((v for v in mapped_imdb if isinstance(v, str) and v.startswith("tt")), None)
         title = None
@@ -174,12 +175,19 @@ async def resolve_media(type_: str, id_: str):
         if not title:
             raise HTTPException(status_code=404, detail="Anime title not found")
         anime_kind = "movie" if anime_format == "MOVIE" else "anime"
+        mapped_season, mapped_episode = season, episode
+        if episode is not None and episode_map:
+            if episode_map.get("fromSeason") is not None:
+                mapped_season = int(episode_map["fromSeason"])
+            if episode_map.get("fromEpisode") is not None:
+                mapped_episode = int(episode_map["fromEpisode"]) + episode - 1
         return {
             "type": anime_kind, "imdb_id": mapped_imdb if isinstance(mapped_imdb, str) and mapped_imdb.startswith("tt") else None,
             "anilist_id": mapping.get("anilist_id"),
             "title": title, "year": year,
             "aliases": list(dict.fromkeys(v for v in aliases if v and v != title))[:4],
             "season": season, "episode": episode,
+            "mapped_season": mapped_season, "mapped_episode": mapped_episode,
         }
 
     url = CINEMETA_URL.format(
