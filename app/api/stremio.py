@@ -150,6 +150,8 @@ async def resolve_media(type_: str, id_: str):
         mapping = await lookup(provider, provider_id)
         kitsu_id = str(mapping.get("kitsu_id") or (provider_id if provider == "kitsu" else ""))
         mapped_imdb = mapping.get("imdb_id")
+        if isinstance(mapped_imdb, list):
+            mapped_imdb = next((v for v in mapped_imdb if isinstance(v, str) and v.startswith("tt")), None)
         title = None
         year = None
         aliases = titles_for(mapping)
