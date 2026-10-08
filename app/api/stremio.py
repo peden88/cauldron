@@ -126,17 +126,18 @@ async def resolve_media(type_: str, id_: str):
     if type_ in ("series", "anime") and ":" in id_:
         parts = id_.split(":")
 
-        imdb_id = parts[0]
+        imdb_id = ":".join(parts[:2]) if type_ == "anime" and parts[0] == "kitsu" else parts[0]
 
-        if len(parts) >= 2:
+        offset = 2 if type_ == "anime" and parts[0] == "kitsu" else 1
+        if len(parts) > offset:
             try:
-                season = int(parts[1])
+                season = int(parts[offset])
             except ValueError:
                 season = None
 
-        if len(parts) >= 3:
+        if len(parts) > offset + 1:
             try:
-                episode = int(parts[2])
+                episode = int(parts[offset + 1])
             except ValueError:
                 episode = None
 
