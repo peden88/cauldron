@@ -38,8 +38,9 @@ async def lookup(provider: str, identifier: str) -> dict:
                             continue
                         for key, field in PROVIDERS.items():
                             value = item.get(field)
-                            if value is not None:
-                                fresh[(key, str(value))] = item
+                            for identity in value if isinstance(value, list) else [value]:
+                                if identity is not None:
+                                    fresh[(key, str(identity))] = item
                     if fresh:
                         _index = fresh
                 except (httpx.HTTPError, ValueError, TypeError) as exc:
