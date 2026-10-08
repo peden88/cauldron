@@ -129,8 +129,8 @@ async def resolve_media(type_: str, id_: str):
     provider_id = None
     if ":" in id_:
         parts = id_.split(":")
-        if parts[0] in ("kitsu", "mal", "myanimelist", "anilist", "anidb"):
-            provider, provider_id = parts[0], parts[1]
+        if parts[0] in ("kitsu", "k2", "mal", "myanimelist", "anilist", "anidb"):
+            provider, provider_id = ("kitsu" if parts[0] == "k2" else parts[0]), parts[1]
             imdb_id = None
             if len(parts) == 3 and parts[2].isdigit():
                 season, episode = 1, int(parts[2])
@@ -500,6 +500,7 @@ async def stream(
         type,
         id,
     )
+    logger.warning("ANIME TRACE resolved request type=%s id=%s title=%s S%sE%s", type, id, media["title"], media["season"], media["episode"]) if type == "anime" or id.startswith(("k2:", "kitsu:", "anilist:", "mal:")) else None
 
     logger.info(
         "SEARCHING: %s (%s) S%sE%s",
