@@ -730,6 +730,8 @@ async def search_all(
     account_api_key: str | None = None,
     aliases: list[str] | None = None,
     anilist_id: str | int | None = None,
+    mapped_season: str | int | None = None,
+    mapped_episode: str | int | None = None,
 ) -> list[TorrentResult]:
 
     logger.info(
@@ -751,8 +753,8 @@ async def search_all(
             scraper,
             title,
             imdb_id,
-            season,
-            episode,
+            mapped_season if media_type == "anime" and scraper.name in ("comet", "mediafusion") and mapped_season is not None else season,
+            mapped_episode if media_type == "anime" and scraper.name in ("comet", "mediafusion") and mapped_episode is not None else episode,
             media_type,
         )
         for title in search_titles
