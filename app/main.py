@@ -42,7 +42,7 @@ async def manifest():
         "version": settings.addon_version,
         "name": settings.addon_name,
         "description": "Open-source torrent search + debrid resolution service.",
-        "types": ["movie", "series"],
+        "types": ["movie", "series", "anime"],
         "catalogs": [],
         "resources": ["stream"],
         "background": f"{settings.addon_url}/static/cauldron.png",
