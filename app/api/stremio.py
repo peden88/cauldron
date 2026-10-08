@@ -123,43 +123,62 @@ async def resolve_media(type_: str, id_: str):
     season = None
     episode = None
 
-    if type_ in ("series", "anime") and ":" in id_:
+    from app.anime.mapping import lookup, titles_for
+
+    provider = None
+    provider_id = None
+    if ":" in id_:
         parts = id_.split(":")
+        if parts[0] in ("kitsu", "mal", "myanimelist", "anilist", "anidb"):
+            provider, provider_id = parts[0], parts[1]
+            imdb_id = None
+            if len(parts) == 3 and parts[2].isdigit():
+                season, episode = 1, int(parts[2])
+            elif len(parts) >= 4 and parts[2].isdigit() and parts[3].isdigit():
+                season, episode = int(parts[2]), int(parts[3])
+        elif type_ in ("series", "anime"):
+            imdb_id = parts[0]
+            if len(parts) >= 3:
+                try:
+                    season, episode = int(parts[1]), int(parts[2])
+                except ValueError:
+                    pass
 
-        imdb_id = ":".join(parts[:2]) if type_ == "anime" and parts[0] == "kitsu" else parts[0]
-
-        offset = 2 if type_ == "anime" and parts[0] == "kitsu" else 1
-        if len(parts) > offset:
+    if provider:
+        if not provider_id or not provider_id.isdigit():
+            raise HTTPException(status_code=400, detail="Invalid anime identifier")
+        mapping = await lookup(provider, provider_id)
+        kitsu_id = str(mapping.get("kitsu_id") or (provider_id if provider == "kitsu" else ""))
+        mapped_imdb = mapping.get("imdb_id")
+        title = None
+        year = None
+        aliases = titles_for(mapping)
+        anime_format = str(mapping.get("type") or "").upper()
+        if kitsu_id.isdigit():
             try:
-                season = int(parts[offset])
-            except ValueError:
-                season = None
-
-        if len(parts) > offset + 1:
-            try:
-                episode = int(parts[offset + 1])
-            except ValueError:
-                episode = None
-
-    if type_ == "anime" and imdb_id.startswith("kitsu:"):
-        kitsu_id = imdb_id.split(":", 1)[1]
-        if not kitsu_id.isdigit():
-            raise HTTPException(status_code=400, detail="Invalid Kitsu anime ID")
-        try:
-            async with httpx.AsyncClient(timeout=15) as client:
-                response = await client.get(f"https://kitsu.io/api/edge/anime/{kitsu_id}")
-                response.raise_for_status()
-                attributes = response.json()["data"]["attributes"]
-        except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
-            raise HTTPException(status_code=502, detail="Unable to resolve Kitsu anime metadata") from exc
-        titles = attributes.get("titles") or {}
-        title = attributes.get("canonicalTitle") or titles.get("en") or titles.get("en_jp")
+                async with httpx.AsyncClient(timeout=15) as client:
+                    response = await client.get(f"https://kitsu.io/api/edge/anime/{kitsu_id}")
+                    response.raise_for_status()
+                    attributes = response.json()["data"]["attributes"]
+                titles = attributes.get("titles") or {}
+                title = attributes.get("canonicalTitle") or titles.get("en") or titles.get("en_jp")
+                date = attributes.get("startDate") or ""
+                year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else None
+                aliases.extend(v for v in [*titles.values(), *(attributes.get("abbreviatedTitles") or [])] if isinstance(v, str))
+                anime_format = str(attributes.get("subtype") or anime_format).upper()
+            except (httpx.HTTPError, KeyError, TypeError, ValueError) as exc:
+                logger.warning("Kitsu metadata lookup failed for %s: %s", kitsu_id, exc)
+        title = title or (aliases[0] if aliases else None)
         if not title:
             raise HTTPException(status_code=404, detail="Anime title not found")
-        date = attributes.get("startDate") or ""
-        year = int(date[:4]) if len(date) >= 4 and date[:4].isdigit() else None
-        aliases = list(dict.fromkeys(v for v in [*titles.values(), *(attributes.get("abbreviatedTitles") or [])] if isinstance(v, str) and v != title))
-        return {"type": "anime", "imdb_id": None, "title": title, "year": year, "aliases": aliases, "season": season, "episode": episode}
+        anime_kind = "movie" if anime_format == "MOVIE" else "anime"
+        return {
+            "type": anime_kind, "imdb_id": mapped_imdb if isinstance(mapped_imdb, str) and mapped_imdb.startswith("tt") else None,
+            "anilist_id": mapping.get("anilist_id"),
+            "title": title, "year": year,
+            "aliases": list(dict.fromkeys(v for v in aliases if v and v != title))[:12],
+            "season": season, "episode": episode,
+        }
 
     url = CINEMETA_URL.format(
         type="movie" if type_ == "movie" else "series",
@@ -202,6 +221,11 @@ async def resolve_media(type_: str, id_: str):
         year = None
 
     aliases = meta.get("aliases") or []
+    if type_ in ("series", "anime") and imdb_id and imdb_id.startswith("tt"):
+        anime_mapping = await lookup("imdb", imdb_id)
+        if anime_mapping:
+            aliases = list(dict.fromkeys([*aliases, *titles_for(anime_mapping)]))[:12]
+            type_ = "anime"
 
     logger.info("=== RESOLVED MEDIA ===")
     logger.info("Type: %s", type_)
@@ -530,6 +554,7 @@ async def stream(
             episode=media["episode"],
             media_type=media["type"],
             aliases=media.get("aliases") if media["type"] == "anime" else None,
+            anilist_id=media.get("anilist_id"),
             account_provider=provider_str,
             account_api_key=api_key,
         )
