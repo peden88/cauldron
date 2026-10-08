@@ -575,7 +575,7 @@ def _title_matches_anime(requested_title: str, result_title: str) -> bool:
     substrings of words (e.g. Monster against Monsters).
     """
     def tokens(value: str) -> list[str]:
-        return re.findall(r"[^\\W_]+", value.casefold(), flags=re.UNICODE)
+        return re.findall(r"[^\W_]+", value.casefold(), flags=re.UNICODE)
 
     wanted = tokens(requested_title)
     found = tokens(result_title)
