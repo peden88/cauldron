@@ -81,7 +81,7 @@ class MediaFusionScraper(Scraper):
         if not imdb_id.startswith("tt"):
             return []
 
-        if media_type == "series":
+        if media_type in ("series", "anime"):
             if season is None or episode is None:
                 return []
 
