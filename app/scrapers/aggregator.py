@@ -798,6 +798,8 @@ async def search_all(
 
     filtered_results: list[TorrentResult] = []
     rejected_examples: list[str] = []
+    rejection_counts = {"title": 0, "episode": 0}
+    episode_examples: list[str] = []
 
     for scraper_results in results_per_scraper:
         for result in scraper_results:
@@ -809,11 +811,21 @@ async def search_all(
                 episode,
             ) for title in search_titles):
                 filtered_results.append(result)
-            elif media_type == "anime" and len(rejected_examples) < 5:
-                rejected_examples.append(str(getattr(result, "title", ""))[:180])
+            elif media_type == "anime":
+                release_title = str(getattr(result, "title", ""))
+                if any(_title_matches_anime(title, release_title) for title in search_titles):
+                    rejection_counts["episode"] += 1
+                    if len(episode_examples) < 12:
+                        episode_examples.append(release_title[:180])
+                else:
+                    rejection_counts["title"] += 1
+                    if len(rejected_examples) < 5:
+                        rejected_examples.append(release_title[:180])
 
     if media_type == "anime":
-        logger.info("ANIME FILTER sample rejected releases: %r", rejected_examples)
+        logger.info("ANIME FILTER rejection counts: %r", rejection_counts)
+        logger.info("ANIME FILTER title mismatches: %r", rejected_examples)
+        logger.info("ANIME FILTER episode mismatches: %r", episode_examples)
 
     logger.info(
         "TITLE FILTER: %d -> %d results",
